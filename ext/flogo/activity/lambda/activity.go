@@ -6,10 +6,13 @@ import (
 
 	"github.com/TIBCOSoftware/flogo-lib/core/activity"
 	"github.com/TIBCOSoftware/flogo-lib/logger"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	opentracing "github.com/opentracing/opentracing-go"
+	ctx "golang.org/x/net/context"
 )
 
 var log = logger.GetLogger("activity-tibco-lambda")
@@ -19,11 +22,13 @@ const (
 	ivRegion    = "region"
 	ivAccessKey = "accessKey"
 	ivSecretKey = "secretKey"
+	ivTracing   = "tracing"
 	ivPayload   = "payload"
 
-	ovValue  = "value"
-	ovResult = "result"
-	ovStatus = "status"
+	ovValue   = "value"
+	ovResult  = "result"
+	ovStatus  = "status"
+	ovTracing = "tracing"
 )
 
 // LambdaResponse struct is used to store the response from Lambda
@@ -50,6 +55,19 @@ func (a *LambdaActivity) Metadata() *activity.Metadata {
 
 // Eval implements activity.Activity.Eval
 func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
+	var span opentracing.Span
+	if tracing := context.GetInput(ivTracing); tracing != nil {
+		span = opentracing.SpanFromContext(tracing.(ctx.Context))
+	}
+
+	if span != nil {
+		span = opentracing.StartSpan(
+			context.TaskName(),
+			opentracing.ChildOf(span.Context()))
+		context.SetOutput(ovTracing, opentracing.ContextWithSpan(ctx.Background(), span))
+		defer span.Finish()
+	}
+
 	arn := context.GetInput(ivArn).(string)
 
 	var accessKey, secretKey = "", ""
@@ -67,7 +85,10 @@ func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
 	case map[string]interface{}:
 		b, err := json.Marshal(&p)
 		if err != nil {
-			panic(err)
+			log.Error(err)
+			span.SetTag("error", err.Error())
+
+			return false, err
 		}
 		payload = string(b)
 	}
@@ -86,6 +107,7 @@ func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
 
 	if err != nil {
 		log.Error(err)
+		span.SetTag("error", err.Error())
 
 		return false, err
 	}
@@ -108,6 +130,7 @@ func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
 	err = json.Unmarshal(out.Payload, &output)
 	if err != nil {
 		log.Error(err)
+		span.SetTag("error", err.Error())
 	}
 
 	log.Debugf("Lambda response: %s", string(response.Payload))

@@ -31,6 +31,10 @@
       "name": "payload",
       "type": "any",
       "required" : true
+    },
+    {
+      "name": "tracing",
+      "type": "any"
     }
   ],
   "outputs": [
@@ -45,6 +49,10 @@
     {
       "name": "status",
       "type": "integer"
+    },
+    {
+      "name": "tracing",
+      "type": "any"
     }
   ]
 }

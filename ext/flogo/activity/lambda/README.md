@@ -31,6 +31,10 @@ Inputs and Outputs:
       "name": "payload",
       "type": "any",
       "required" : true
+    },
+    {
+      "name": "tracing",
+      "type": "any"
     }
   ],
   "outputs": [
@@ -45,6 +49,10 @@ Inputs and Outputs:
     {
       "name": "status",
       "type": "integer"
+    },
+    {
+      "name": "tracing",
+      "type": "any"
     }
   ]
 }
@@ -57,6 +65,7 @@ Inputs and Outputs:
 | accessKey   | Access key for the user to invoke the function |
 | secretKey   | The users secret key                           |
 | payload     | The payload. A JSON object.                    |
+| tracing     | The tracing context to forward                 |
 
 ## Output
 The output is
@@ -65,3 +74,4 @@ The output is
 | value       | A struct containing the Status and response Payload from the function. |
 | result      | The reponse payload     |
 | status      | Thestatus               |
+| tracing     | The tracing context to forward                 |
