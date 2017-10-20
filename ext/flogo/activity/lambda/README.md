@@ -34,7 +34,8 @@ Inputs and Outputs:
     },
     {
       "name": "tracing",
-      "type": "any"
+      "type": "any",
+      "required" : false
     }
   ],
   "outputs": [

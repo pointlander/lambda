@@ -41,8 +41,8 @@
             "tasks": [
               {
                 "id": 2,
-                "name": "Invoke REST Service",
-                "description": "Simple REST Activity",
+                "name": "Invoke Lambda Service",
+                "description": "Simple Lambda Activity",
                 "type": 1,
                 "activityType": "github-com-pointlander-lambda-ext-flogo-activity-lambda",
                 "activityRef": "github.com/pointlander/lambda/ext/flogo/activity/lambda",
@@ -80,6 +80,7 @@
                   {
                     "name": "tracing",
                     "value": null,
+                    "required" : false,
                     "type": "any"
                   }
                 ],
