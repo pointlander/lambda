@@ -68,7 +68,14 @@ func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
 		defer span.Finish()
 	}
 
+	setTag := func(key string, value interface{}) {
+		if span != nil {
+			span.SetTag(key, value)
+		}
+	}
+
 	arn := context.GetInput(ivArn).(string)
+	setTag("arn", arn)
 
 	var accessKey, secretKey = "", ""
 	if context.GetInput(ivAccessKey) != nil {
@@ -86,20 +93,23 @@ func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
 		b, err := json.Marshal(&p)
 		if err != nil {
 			log.Error(err)
-			span.SetTag("error", err.Error())
+			setTag("error", err.Error())
 
 			return false, err
 		}
 		payload = string(b)
 	}
+	setTag("payload", payload)
 
 	var config *aws.Config
+	region := context.GetInput(ivRegion).(string)
 	if accessKey != "" && secretKey != "" {
-		config = aws.NewConfig().WithRegion(context.GetInput(ivRegion).(string)).WithCredentials(credentials.NewStaticCredentials(accessKey, secretKey, ""))
+		config = aws.NewConfig().WithRegion(region).WithCredentials(credentials.NewStaticCredentials(accessKey, secretKey, ""))
 	} else {
-		config = aws.NewConfig().WithRegion(context.GetInput(ivRegion).(string))
+		config = aws.NewConfig().WithRegion(region)
 	}
 	aws := lambda.New(session.New(config))
+	setTag("region", region)
 
 	out, err := aws.Invoke(&lambda.InvokeInput{
 		FunctionName: &arn,
@@ -107,7 +117,7 @@ func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
 
 	if err != nil {
 		log.Error(err)
-		span.SetTag("error", err.Error())
+		setTag("error", err.Error())
 
 		return false, err
 	}
@@ -130,10 +140,12 @@ func (a *LambdaActivity) Eval(context activity.Context) (done bool, err error) {
 	err = json.Unmarshal(out.Payload, &output)
 	if err != nil {
 		log.Error(err)
-		span.SetTag("error", err.Error())
+		setTag("error", err.Error())
 	}
 
 	log.Debugf("Lambda response: %s", string(response.Payload))
+	setTag("response", string(out.Payload))
+	setTag("responseStatus", *out.StatusCode)
 	context.SetOutput(ovValue, response)
 	context.SetOutput(ovResult, output)
 	context.SetOutput(ovStatus, *out.StatusCode)
